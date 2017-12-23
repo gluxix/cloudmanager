@@ -1,3 +1,10 @@
 package ru.rps.cloudmanager.api.exceptions
 
-class CloudException(cause: Throwable, val errorMessage: String, val errorCode: ErrorCode) : Exception(cause)
+import ru.rps.cloudmanager.model.CloudAccount
+
+class CloudException(
+        cause: Throwable?,
+        val errorMessage: String,
+        val errorCode: ErrorCode,
+        val account: CloudAccount? = null
+) : Exception(cause)

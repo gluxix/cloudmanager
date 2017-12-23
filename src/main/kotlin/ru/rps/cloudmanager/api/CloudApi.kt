@@ -59,6 +59,6 @@ interface CloudApi {
      * @param filePath File path
      * @param path Cloud file path
      */
-    fun uploadFile(filePath: String, path: String)
+    fun uploadFile(filePath: String, path: String, listener: ProgressListener)
 
 }

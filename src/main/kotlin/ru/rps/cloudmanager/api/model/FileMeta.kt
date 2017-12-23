@@ -2,7 +2,7 @@ package ru.rps.cloudmanager.api.model
 
 import ru.rps.cloudmanager.model.CloudAccount
 
-class FileMeta(
+data class FileMeta(
         val name: String,
         val path: String,
         val accounts: MutableSet<CloudAccount> = mutableSetOf(),
