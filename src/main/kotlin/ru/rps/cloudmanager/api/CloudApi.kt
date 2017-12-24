@@ -5,10 +5,6 @@ import ru.rps.cloudmanager.api.model.SpaceInfo
 
 interface CloudApi {
 
-    interface ProgressListener {
-        fun updateProgress(loaded: Long, total: Long)
-    }
-
     /**
      * Returns a disk space info
      * @see SpaceInfo

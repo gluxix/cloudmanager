@@ -65,7 +65,7 @@ class YandexCloudApi(private val account: CloudAccount) : CloudApi {
         processException(ex)
     }
 
-    override fun downloadFile(file: FileMeta, path: String, listener: CloudApi.ProgressListener) {
+    override fun downloadFile(file: FileMeta, path: String, listener: ru.rps.cloudmanager.api.ProgressListener) {
         try {
             api.downloadFile(file.path, File(path), object : ProgressListener {
                 override fun updateProgress(loaded: Long, total: Long) {
@@ -79,7 +79,7 @@ class YandexCloudApi(private val account: CloudAccount) : CloudApi {
         }
     }
 
-    override fun uploadFile(filePath: String, path: String, listener: CloudApi.ProgressListener) {
+    override fun uploadFile(filePath: String, path: String, listener: ru.rps.cloudmanager.api.ProgressListener) {
         try {
             val link = api.getUploadLink(path, true)
             api.uploadFile(link, true, File(filePath), object : ProgressListener {

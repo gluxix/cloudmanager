@@ -103,21 +103,22 @@ object CloudManager : CloudApi {
         }
     }
 
-    override fun downloadFile(file: FileMeta, path: String, listener: CloudApi.ProgressListener) {
+    override fun downloadFile(file: FileMeta, path: String, listener: ProgressListener) {
         if (file.accounts.isNotEmpty()) {
-            val fileService = YandexCloudApi(file.accounts.first())
+            val fileService = create(file.accounts.first())
             fileService.downloadFile(file, path, listener)
         }
     }
 
-    override fun uploadFile(filePath: String, path: String, listener: CloudApi.ProgressListener) {
+    override fun uploadFile(filePath: String, path: String, listener: ProgressListener) {
         val account = getUploadAccount()
-        val api = YandexCloudApi(account)
+        val api = create(account)
         api.uploadFile(filePath, path, listener)
     }
 
     fun create(account: CloudAccount): CloudApi = when (account.cloudName) {
         CloudName.YANDEX -> YandexCloudApi(account)
+        CloudName.DROPBOX -> DropboxCloudApi(account)
     }
 
     private fun getCloudApis() = getAccounts().map { create(it) }

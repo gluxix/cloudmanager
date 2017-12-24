@@ -1,5 +1,6 @@
 package ru.rps.cloudmanager.model
 
 enum class CloudName(name: String) {
-    YANDEX("yandex")
+    YANDEX("yandex"),
+    DROPBOX("dropbox")
 }

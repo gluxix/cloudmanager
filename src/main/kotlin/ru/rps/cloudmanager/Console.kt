@@ -2,6 +2,7 @@ package ru.rps.cloudmanager
 
 import ru.rps.cloudmanager.api.CloudApi
 import ru.rps.cloudmanager.api.CloudManager
+import ru.rps.cloudmanager.api.ProgressListener
 import ru.rps.cloudmanager.api.exceptions.CloudException
 import ru.rps.cloudmanager.api.model.DiskSpaceInfo
 import ru.rps.cloudmanager.api.model.FileMeta
@@ -12,14 +13,14 @@ import ru.rps.cloudmanager.model.CloudName
 fun main(args: Array<String>) {
     printSpaceInfo()
     listFolder("/")
-//    createFolder("/asd/test")
-//    deleteFile("/asd")
-//    moveFile("/test", "/test_renamed")
+//    createFolder("/new/folder/test")
+//    deleteFile("/asd/123.jpg")
+//    moveFile("/new", "/new_renamed")
 //    downloadFile(
 //            FileMeta(
 //                    "moscow.jpg",
 //                    "/moscow.jpg",
-//                    mutableSetOf(CloudAccount(CloudName.YANDEX, "AQAAAAAiQ5XtAASyfxwYR1_Qd0DktneLdlpIz7M"))
+//                    mutableSetOf(CloudAccount(CloudName.DROPBOX, "JDxZlL9JW5AAAAAAAAAAgFih8PMO-FclKE_U8_Rh959TS0PKNhht-tUfFCBsTr4t"))
 //            ),
 //            "/Users/tideariel/Downloads/moscow.jpg"
 //    )
@@ -83,9 +84,9 @@ fun moveFile(from: String, path: String) {
 
 fun downloadFile(file: FileMeta, path: String) {
     try {
-        CloudManager.downloadFile(file, path, object : CloudApi.ProgressListener {
+        CloudManager.downloadFile(file, path, object : ProgressListener {
             override fun updateProgress(loaded: Long, total: Long) {
-                println("Loaded $loaded from $total")
+                println("Downloaded $loaded from $total")
             }
         })
     } catch (ex: CloudException) {
@@ -95,9 +96,9 @@ fun downloadFile(file: FileMeta, path: String) {
 
 fun uploadFile(filePath: String, path: String) {
     try {
-        CloudManager.uploadFile(filePath, path, object : CloudApi.ProgressListener {
+        CloudManager.uploadFile(filePath, path, object : ProgressListener {
             override fun updateProgress(loaded: Long, total: Long) {
-                println("Loaded $loaded from $total")
+                println("Uploaded $loaded from $total")
             }
         })
     } catch (ex: CloudException) {
