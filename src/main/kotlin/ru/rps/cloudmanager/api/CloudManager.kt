@@ -32,8 +32,18 @@ object CloudManager : CloudApi {
         val files = mutableListOf<FileMeta>()
         val resultList = mutableSetOf<FileMeta>()
         return runBlocking {
+            var counter = deferred.size
             deferred.forEach {
-                files.addAll(it.await())
+                try {
+                    files.addAll(it.await())
+                } catch (ex: CloudException) {
+                    if (ex.errorCode == ErrorCode.FILE_NOT_FOUND) {
+                        --counter
+                    }
+                }
+            }
+            if (counter == 0) {
+                throw CloudException(null, "File not found", ErrorCode.FILE_NOT_FOUND)
             }
             files.forEach {
                 if (resultList.add(it)) {

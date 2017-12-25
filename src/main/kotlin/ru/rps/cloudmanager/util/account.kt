@@ -33,6 +33,24 @@ fun putAccount(account: CloudAccount) {
     }
 }
 
+fun removeAccount(account: CloudAccount) {
+    val accounts = getAccounts().toMutableSet()
+    if (accounts.remove(account)) {
+        File("accounts.json").printWriter().use {
+            it.println(Gson().toJson(accounts))
+        }
+    }
+}
+
+/**
+ * Deletes all accounts
+ */
+fun clearAccounts() {
+    try {
+        File("accounts.json").delete()
+    } catch (ex: Exception) {}
+}
+
 /**
  * Checks token with spaceInfo function of cloud api
  * @return true if token is valid

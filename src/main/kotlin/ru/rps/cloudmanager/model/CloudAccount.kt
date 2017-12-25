@@ -1,5 +1,7 @@
 package ru.rps.cloudmanager.model
 
+import ru.rps.cloudmanager.ui.model.CloudAccount as FXCloudAccount
+
 data class CloudAccount(
         val cloudName: CloudName,
         val token: String,
@@ -18,4 +20,8 @@ data class CloudAccount(
     }
 
     override fun hashCode() = cloudName.hashCode() + 31 * token.hashCode()
+
+    companion object {
+        fun mapFrom(acc: FXCloudAccount) = CloudAccount(acc.cloudName, acc.token, acc.alias)
+    }
 }
