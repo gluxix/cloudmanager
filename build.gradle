@@ -36,7 +36,6 @@ dependencies {
     compile group: 'com.yandex.android', name: 'disk-restapi-sdk', version: '1.03'
     compile 'com.dropbox.core:dropbox-core-sdk:3.0.5'
     compile "org.jetbrains.kotlinx:kotlinx-coroutines-core:0.19.2"
-    compile 'no.tornado:tornadofx:1.7.14'
 }
 
 compileKotlin {
