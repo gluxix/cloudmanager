@@ -9,3 +9,13 @@ package ru.rps.cloudmanager.util
  */
 fun extractNameFromPath(path: String, delimiter: String = "/") =
     path.split(delimiter).last()
+
+/**
+ * Prepares path
+ * Example: / -> / | /path -> /path/
+ * @param path Path
+ * @param fileName appended file name (not necessary)
+ * @return Prepared path
+ */
+fun preparePath(path: String, fileName: String = "") =
+    if (path.last() != '/') "$path/$fileName" else "$path$fileName"

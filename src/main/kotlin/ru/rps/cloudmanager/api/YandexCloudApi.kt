@@ -9,7 +9,7 @@ import com.yandex.disk.rest.json.Resource
 import ru.rps.cloudmanager.api.exceptions.CloudException
 import ru.rps.cloudmanager.api.exceptions.ErrorCode
 import ru.rps.cloudmanager.api.model.FileMeta
-import ru.rps.cloudmanager.api.model.mappers.mapFrom
+import ru.rps.cloudmanager.api.model.SpaceInfo
 import ru.rps.cloudmanager.model.CloudAccount
 import java.io.File
 
@@ -18,7 +18,7 @@ class YandexCloudApi(private val account: CloudAccount) : CloudApi {
     private val api = RestClient(Credentials(account.alias, account.token))
 
     override fun spaceInfo() = try {
-        mapFrom(api.diskInfo, account)
+        SpaceInfo.mapFrom(api.diskInfo, account)
     } catch (ex: HttpCodeException) {
         processException(ex)
     }
@@ -33,7 +33,7 @@ class YandexCloudApi(private val account: CloudAccount) : CloudApi {
                 files.addAll(resources.items)
                 offset += limit
             } while (files.size < resources.total)
-            files.map { mapFrom(it, account) }
+            files.map { FileMeta.mapFrom(it, account) }
         }
         catch (ex: HttpCodeException) {
             processException(ex)
@@ -42,7 +42,7 @@ class YandexCloudApi(private val account: CloudAccount) : CloudApi {
 
     override fun createFolder(path: String) = try {
         api.makeFolder(path)
-        mapFrom(api.getResources(buildArgs(path)), account)
+        FileMeta.mapFrom(api.getResources(buildArgs(path)), account)
     } catch (ex: HttpCodeException) {
         processException(ex)
     }
@@ -60,7 +60,7 @@ class YandexCloudApi(private val account: CloudAccount) : CloudApi {
         if (response.httpStatus == null || response.httpStatus.ordinal == 202 ) {
             while (api.getOperation(response).isInProgress);
         }
-        mapFrom(api.getResources(buildArgs(path)), account)
+        FileMeta.mapFrom(api.getResources(buildArgs(path)), account)
     } catch (ex: HttpCodeException) {
         processException(ex)
     }

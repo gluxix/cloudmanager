@@ -8,7 +8,7 @@ import com.dropbox.core.v2.files.*
 import ru.rps.cloudmanager.api.exceptions.CloudException
 import ru.rps.cloudmanager.api.exceptions.ErrorCode
 import ru.rps.cloudmanager.api.model.FileMeta
-import ru.rps.cloudmanager.api.model.mappers.mapFrom
+import ru.rps.cloudmanager.api.model.SpaceInfo
 import ru.rps.cloudmanager.model.CloudAccount
 import java.io.File
 import java.io.FileInputStream
@@ -20,7 +20,7 @@ class DropboxCloudApi(private val account: CloudAccount) : CloudApi {
     private val api = DbxClientV2(DbxRequestConfig(account.alias), account.token)
 
     override fun spaceInfo() = try {
-        mapFrom(api.users().spaceUsage, account)
+        SpaceInfo.mapFrom(api.users().spaceUsage, account)
     } catch (ex: InvalidAccessTokenException) {
         throw CloudException(ex.cause, ex.localizedMessage, ErrorCode.UNAUTHORIZED, account)
     }
@@ -31,7 +31,7 @@ class DropboxCloudApi(private val account: CloudAccount) : CloudApi {
             var result = api.files().listFolder(dbPath)
             val list = mutableListOf<FileMeta>()
             do {
-                result.entries.forEach { list.add(mapFrom(it, account)) }
+                result.entries.forEach { list.add(FileMeta.mapFrom(it, account)) }
                 if (!result.hasMore) break
                 result = api.files().listFolderContinue(result.cursor)
             } while (true)
@@ -44,7 +44,7 @@ class DropboxCloudApi(private val account: CloudAccount) : CloudApi {
     }
 
     override fun createFolder(path: String) = try {
-        mapFrom(api.files().createFolderV2(path).metadata, account)
+        FileMeta.mapFrom(api.files().createFolderV2(path).metadata, account)
     } catch (ex: CreateFolderErrorException) {
         throw CloudException(ex.cause, ex.localizedMessage, ErrorCode.ALREADY_EXIST, account)
     }
@@ -58,7 +58,7 @@ class DropboxCloudApi(private val account: CloudAccount) : CloudApi {
     }
 
     override fun moveFile(from: String, path: String) = try {
-        mapFrom(api.files().moveV2(from, path).metadata, account)
+        FileMeta.mapFrom(api.files().moveV2(from, path).metadata, account)
     } catch (ex: RelocationErrorException) {
         throw CloudException(ex.cause, ex.localizedMessage, ErrorCode.UNKNOWN_ERROR, account)
     }
