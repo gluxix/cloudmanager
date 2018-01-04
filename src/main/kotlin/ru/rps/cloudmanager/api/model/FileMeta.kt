@@ -20,7 +20,7 @@ data class FileMeta(
 
         other as FileMeta
 
-        if (path != other.path) return false
+        if (path.toLowerCase() != other.path.toLowerCase()) return false
         if (size != other.size) return false
 
         return true
@@ -28,7 +28,7 @@ data class FileMeta(
 
     override fun hashCode(): Int {
         var result = size.hashCode()
-        result = 31 * result + path.hashCode()
+        result = 31 * result + path.toLowerCase().hashCode()
         return result
     }
 
