@@ -11,14 +11,15 @@ import ru.rps.cloudmanager.api.model.TotalSpaceInfo
 import ru.rps.cloudmanager.model.CloudAccount
 import ru.rps.cloudmanager.model.CloudName
 import ru.rps.cloudmanager.util.extractNameFromPath
+import ru.rps.cloudmanager.util.extractParentFolder
 import ru.rps.cloudmanager.util.getAccounts
 
 /**
  * Accumulates all accounts and returns a common result
  */
-object CloudManager : CloudApi {
+object CloudManager {
 
-    override fun spaceInfo(): SpaceInfo {
+    fun spaceInfo(): SpaceInfo {
         val deferred = getCloudApis().map { async { it.spaceInfo() } }
         return runBlocking {
             val spaces = mutableListOf<SpaceInfo>()
@@ -27,35 +28,22 @@ object CloudManager : CloudApi {
         }
     }
 
-    override fun listFolder(path: String): List<FileMeta> {
-        val deferred = getCloudApis().map { async { it.listFolder(path) } }
+    fun listFolder(path: String, accounts: Set<CloudAccount>? = null): List<FileMeta> {
+        val deferred = getCloudApis(accounts).map { async { it.listFolder(path) } }
         val files = mutableListOf<FileMeta>()
         val resultList = mutableSetOf<FileMeta>()
         return runBlocking {
-            var counter = deferred.size
-            deferred.forEach {
-                try {
-                    files.addAll(it.await())
-                } catch (ex: CloudException) {
-                    if (ex.errorCode == ErrorCode.FILE_NOT_FOUND) {
-                        --counter
-                    }
-                }
-            }
-            if (counter == 0) {
-                throw CloudException(null, "File not found", ErrorCode.FILE_NOT_FOUND)
-            }
+            deferred.forEach { files.addAll(it.await()) }
             files.forEach {
-                if (resultList.add(it)) {
-                    files[files.indexOf(it)].accounts.addAll(it.accounts) // Optimize it!
-                }
+                resultList.add(it)
+                files[files.indexOf(it)].accounts.addAll(it.accounts)
             }
             resultList.toList()
         }
     }
 
-    override fun createFolder(path: String): FileMeta {
-        val deferred = getCloudApis().map { async { it.createFolder(path) } }
+    fun createFolder(path: String, accounts: Set<CloudAccount>? = null): FileMeta {
+        val deferred = getCloudApis(accounts).map { async { it.createFolder(path) } }
         return runBlocking {
             val createdFolderList = mutableListOf<FileMeta>()
             deferred.forEach {
@@ -75,55 +63,55 @@ object CloudManager : CloudApi {
         }
     }
 
-    override fun deleteFile(path: String) {
-        val deferred = getCloudApis().map { async { it.deleteFile(path) } }
+    fun deleteFile(file: FileMeta) {
+        val deferred = getCloudApis(file.accounts).map { async { it.deleteFile(file) } }
         return runBlocking {
             deferred.forEach {
-                try {
-                    it.await()
-                } catch (ex: CloudException) {
-                    when (ex.errorCode) {
-                        ErrorCode.BLOCKED_RESOURCE,
-                        ErrorCode.NO_PERMISSION,
-                        ErrorCode.UNAUTHORIZED -> throw ex
-                        else -> Unit
-                    }
-                }
+                it.await()
             }
         }
     }
 
-    override fun moveFile(from: String, path: String): FileMeta {
-        val deferred = getCloudApis().map { async { it.moveFile(from, path) } }
+    fun moveFile(from: FileMeta, to: FileMeta): FileMeta {
+        println("From ${from.path}")
+        println("To ${to.path}")
+        val deferred = getCloudApis(from.accounts).map { async {
+            try {
+                it.listFolder(to.parentFolder)
+            } catch (ex: CloudException) {
+                it.createFolder(to.parentFolder)
+            }
+            it.moveFile(from, to)
+        } }
         return runBlocking {
             val fileList = mutableListOf<FileMeta>()
             deferred.forEach {
-                try {
-                    fileList.add(it.await())
-                } catch (ex: CloudException) {
-                    if (ex.errorCode != ErrorCode.FILE_NOT_FOUND) {
-                        throw ex
-                    }
-                }
+                fileList.add(it.await())
             }
-            if (fileList.isEmpty()) {
-                throw CloudException(Throwable("Don't moved"), "Don't moved", ErrorCode.UNKNOWN_ERROR)
-            }
-            fileList.first()
+            val file = fileList.first()
+            file.accounts.addAll(from.accounts)
+            file
         }
     }
 
-    override fun downloadFile(file: FileMeta, path: String, listener: ProgressListener) {
+    fun downloadFile(file: FileMeta, path: String, listener: ProgressListener) {
         if (file.accounts.isNotEmpty()) {
             val fileService = create(file.accounts.first())
             fileService.downloadFile(file, path, listener)
         }
     }
 
-    override fun uploadFile(filePath: String, path: String, listener: ProgressListener) {
+    fun uploadFile(filePath: String, path: String, listener: ProgressListener): FileMeta {
         val account = getUploadAccount()
         val api = create(account)
-        api.uploadFile(filePath, path, listener)
+        // Creating path if doesn't exist
+        val cloudPath = extractParentFolder(path)
+        try {
+            api.listFolder(cloudPath)
+        } catch (ex: CloudException) {
+            api.createFolder(cloudPath)
+        }
+        return api.uploadFile(filePath, path, listener)
     }
 
     fun create(account: CloudAccount): CloudApi = when (account.cloudName) {
@@ -131,7 +119,11 @@ object CloudManager : CloudApi {
         CloudName.DROPBOX -> DropboxCloudApi(account)
     }
 
-    private fun getCloudApis() = getAccounts().map { create(it) }
+    private fun getCloudApis(accounts: Set<CloudAccount>? = null) = if (accounts == null) {
+        getAccounts().map { create(it) }
+    } else {
+        accounts.map { create(it) }
+    }
 
     private fun getUploadAccount(): CloudAccount {
         val spaceInfos = spaceInfo() as TotalSpaceInfo

@@ -11,9 +11,11 @@ import ru.rps.cloudmanager.api.exceptions.ErrorCode
 import ru.rps.cloudmanager.api.model.FileMeta
 import ru.rps.cloudmanager.api.model.SpaceInfo
 import ru.rps.cloudmanager.model.CloudAccount
+import ru.rps.cloudmanager.util.buildPathSequence
+import ru.rps.cloudmanager.util.extractNameFromPath
 import java.io.File
 
-class YandexCloudApi(private val account: CloudAccount) : CloudApi {
+class YandexCloudApi(override val account: CloudAccount) : CloudApi {
 
     private val api = RestClient(Credentials(account.alias, account.token))
 
@@ -41,26 +43,30 @@ class YandexCloudApi(private val account: CloudAccount) : CloudApi {
     }
 
     override fun createFolder(path: String) = try {
-        api.makeFolder(path)
+        buildPathSequence(path).forEach {
+            try {
+                api.makeFolder(it)
+            } catch (ex: HttpCodeException) {}
+        }
         FileMeta.mapFrom(api.getResources(buildArgs(path)), account)
     } catch (ex: HttpCodeException) {
         processException(ex)
     }
 
-    override fun deleteFile(path: String) {
+    override fun deleteFile(file: FileMeta) {
         try {
-            api.delete(path, true)
+            api.delete(file.path, true)
         } catch (ex: HttpCodeException) {
             processException(ex)
         }
     }
 
-    override fun moveFile(from: String, path: String) = try {
-        val response = api.move(from, path, false)
+    override fun moveFile(from: FileMeta, to: FileMeta) = try {
+        val response = api.move(from.path, to.path, true)
         if (response.httpStatus == null || response.httpStatus.ordinal == 202 ) {
             while (api.getOperation(response).isInProgress);
         }
-        FileMeta.mapFrom(api.getResources(buildArgs(path)), account)
+        FileMeta.mapFrom(api.getResources(buildArgs(to.path)), account)
     } catch (ex: HttpCodeException) {
         processException(ex)
     }
@@ -79,19 +85,19 @@ class YandexCloudApi(private val account: CloudAccount) : CloudApi {
         }
     }
 
-    override fun uploadFile(filePath: String, path: String, listener: ru.rps.cloudmanager.api.ProgressListener) {
-        try {
-            val link = api.getUploadLink(path, true)
-            api.uploadFile(link, true, File(filePath), object : ProgressListener {
-                override fun updateProgress(loaded: Long, total: Long) {
-                    listener.updateProgress(loaded, total)
-                }
+    override fun uploadFile(filePath: String, path: String, listener: ru.rps.cloudmanager.api.ProgressListener) = try {
+        val link = api.getUploadLink(path, true)
+        val file = File(filePath)
+        api.uploadFile(link, true, file, object : ProgressListener {
+            override fun updateProgress(loaded: Long, total: Long) {
+                listener.updateProgress(loaded, total)
+            }
 
-                override fun hasCancelled() = false
-            })
-        } catch (ex: HttpCodeException) {
-            processException(ex)
-        }
+            override fun hasCancelled() = false
+        })
+        FileMeta(extractNameFromPath(path), path, mutableSetOf(account), isDir = false, size = file.length())
+    } catch (ex: HttpCodeException) {
+        processException(ex)
     }
 
     private fun buildArgs(path: String, limit: Int = 1, offset: Int = 0) = ResourcesArgs.Builder()

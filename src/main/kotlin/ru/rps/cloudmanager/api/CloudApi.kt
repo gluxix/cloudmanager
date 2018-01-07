@@ -2,8 +2,14 @@ package ru.rps.cloudmanager.api
 
 import ru.rps.cloudmanager.api.model.FileMeta
 import ru.rps.cloudmanager.api.model.SpaceInfo
+import ru.rps.cloudmanager.model.CloudAccount
 
 interface CloudApi {
+
+    /**
+     * Account
+     */
+    val account: CloudAccount
 
     /**
      * Returns a disk space info
@@ -23,23 +29,24 @@ interface CloudApi {
     /**
      * Creates a folder
      * @param path Created folder path
+     * @return Created folder FileMeta
      */
     fun createFolder(path: String): FileMeta
 
     /**
      * Deletes file (folder)
-     * @param path Deleted file path
+     * @param file Deleted file (folder)
      */
-    fun deleteFile(path: String)
+    fun deleteFile(file: FileMeta)
 
     /**
      * Moves file (can be used to rename files)
      * @see FileMeta
-     * @param from Original file name
-     * @param path New file name
+     * @param from Original file
+     * @param to New file
      * @return New file meta
      */
-    fun moveFile(from: String, path: String): FileMeta
+    fun moveFile(from: FileMeta, to: FileMeta): FileMeta
 
     /**
      * Downloads file
@@ -54,7 +61,8 @@ interface CloudApi {
      * Uploads file to cloud
      * @param filePath File path
      * @param path Cloud file path
+     * @return FileMeta
      */
-    fun uploadFile(filePath: String, path: String, listener: ProgressListener)
+    fun uploadFile(filePath: String, path: String, listener: ProgressListener): FileMeta
 
 }

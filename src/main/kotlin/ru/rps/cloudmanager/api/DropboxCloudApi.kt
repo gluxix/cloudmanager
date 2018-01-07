@@ -10,12 +10,13 @@ import ru.rps.cloudmanager.api.exceptions.ErrorCode
 import ru.rps.cloudmanager.api.model.FileMeta
 import ru.rps.cloudmanager.api.model.SpaceInfo
 import ru.rps.cloudmanager.model.CloudAccount
+import ru.rps.cloudmanager.util.extractNameFromPath
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.IOException
 
-class DropboxCloudApi(private val account: CloudAccount) : CloudApi {
+class DropboxCloudApi(override val account: CloudAccount) : CloudApi {
 
     private val api = DbxClientV2(DbxRequestConfig(account.alias), account.token)
 
@@ -49,16 +50,16 @@ class DropboxCloudApi(private val account: CloudAccount) : CloudApi {
         throw CloudException(ex.cause, ex.localizedMessage, ErrorCode.ALREADY_EXIST, account)
     }
 
-    override fun deleteFile(path: String) {
+    override fun deleteFile(file: FileMeta) {
         try {
-            api.files().deleteV2(path)
+            api.files().deleteV2(file.path)
         } catch (ex: DeleteErrorException) {
             throw CloudException(ex.cause, ex.localizedMessage, ErrorCode.FILE_NOT_FOUND, account)
         }
     }
 
-    override fun moveFile(from: String, path: String) = try {
-        FileMeta.mapFrom(api.files().moveV2(from, path).metadata, account)
+    override fun moveFile(from: FileMeta, to: FileMeta) = try {
+        FileMeta.mapFrom(api.files().moveV2(from.path, to.path).metadata, account)
     } catch (ex: RelocationErrorException) {
         throw CloudException(ex.cause, ex.localizedMessage, ErrorCode.UNKNOWN_ERROR, account)
     }
@@ -79,14 +80,13 @@ class DropboxCloudApi(private val account: CloudAccount) : CloudApi {
         }
     }
 
-    override fun uploadFile(filePath: String, path: String, listener: ProgressListener) {
-        try {
-            val file = File(filePath)
-            val fileInputStream = FileInputStream(file)
-            api.files().upload(path).uploadAndFinish(ProgressInputStream(fileInputStream, file.length(), listener))
-        } catch (ex: DbxException) {
-            throw CloudException(ex.cause, ex.localizedMessage, ErrorCode.UNKNOWN_ERROR, account)
-        }
+    override fun uploadFile(filePath: String, path: String, listener: ProgressListener) = try {
+        val file = File(filePath)
+        val fileInputStream = FileInputStream(file)
+        api.files().upload(path).uploadAndFinish(ProgressInputStream(fileInputStream, file.length(), listener))
+        FileMeta(extractNameFromPath(path), path, mutableSetOf(account), isDir = false, size = file.length())
+    } catch (ex: DbxException) {
+        throw CloudException(ex.cause, ex.localizedMessage, ErrorCode.UNKNOWN_ERROR, account)
     }
 
     private fun preparePath(path: String) = if (path == "/") "" else path

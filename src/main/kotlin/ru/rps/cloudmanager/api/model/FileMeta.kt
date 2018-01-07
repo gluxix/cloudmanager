@@ -5,6 +5,7 @@ import com.dropbox.core.v2.files.FolderMetadata
 import com.dropbox.core.v2.files.Metadata
 import com.yandex.disk.rest.json.Resource
 import ru.rps.cloudmanager.model.CloudAccount
+import ru.rps.cloudmanager.util.extractParentFolder
 
 data class FileMeta(
         val name: String,
@@ -14,6 +15,9 @@ data class FileMeta(
         val isDir: Boolean = true,
         val size: Long = 0
 ) {
+    val parentFolder: String
+        get() = extractParentFolder(path)
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
