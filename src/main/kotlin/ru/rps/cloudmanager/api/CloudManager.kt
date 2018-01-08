@@ -119,11 +119,8 @@ object CloudManager {
         CloudName.DROPBOX -> DropboxCloudApi(account)
     }
 
-    private fun getCloudApis(accounts: Set<CloudAccount>? = null) = if (accounts == null) {
-        getAccounts().map { create(it) }
-    } else {
-        accounts.map { create(it) }
-    }
+    private fun getCloudApis(accounts: Set<CloudAccount>? = null) =
+            accounts?.map { create(it) } ?: getAccounts().map { create(it) }
 
     private fun getUploadAccount(): CloudAccount {
         val spaceInfos = spaceInfo() as TotalSpaceInfo
